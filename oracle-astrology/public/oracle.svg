@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="45" fill="#1a1a2e" stroke="#c9a227" stroke-width="3"/>
-  <circle cx="50" cy="50" r="30" fill="none" stroke="#c9a227" stroke-width="1.5"/>
-  <text x="50" y="60" font-size="40" text-anchor="middle" fill="#c9a227">🔮</text>
-</svg>
