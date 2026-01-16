@@ -51,18 +51,18 @@ export function calculateTransits(date) {
  */
 function calculatePlanetaryPositions(date) {
   const planets = {};
-  
-  // Sole
-  const sun = Astronomy.EclipticGeoMoon(date);
+
+  // Sole - usa SunPosition che restituisce direttamente coordinate eclittiche
+  const sunPos = Astronomy.SunPosition(date);
   planets.sun = {
     name: 'Sun',
     symbol: '☉',
-    longitude: normalizeAngle(Astronomy.SunPosition(date).elon),
-    latitude: 0, // Sole sempre su eclittica
-    ...getPlanetDetails(normalizeAngle(Astronomy.SunPosition(date).elon))
+    longitude: normalizeAngle(sunPos.elon),
+    latitude: sunPos.elat,
+    ...getPlanetDetails(normalizeAngle(sunPos.elon))
   };
-  
-  // Luna
+
+  // Luna - usa EclipticGeoMoon che restituisce coordinate sferiche
   const moon = Astronomy.EclipticGeoMoon(date);
   planets.moon = {
     name: 'Moon',
@@ -71,13 +71,18 @@ function calculatePlanetaryPositions(date) {
     latitude: moon.lat,
     ...getPlanetDetails(normalizeAngle(moon.lon))
   };
-  
+
+  // Funzione helper per ottenere coordinate eclittiche di un pianeta
+  const getPlanetEcliptic = (bodyName) => {
+    const geoVector = Astronomy.GeoVector(Astronomy.Body[bodyName], date, true);
+    return Astronomy.Ecliptic(geoVector);
+  };
+
   // Pianeti interni
   ['Mercury', 'Venus', 'Mars'].forEach(planetName => {
-    const body = Astronomy.Body[planetName];
-    const ecliptic = Astronomy.Ecliptic(body, date);
+    const ecliptic = getPlanetEcliptic(planetName);
     const longitude = normalizeAngle(ecliptic.elon);
-    
+
     planets[planetName.toLowerCase()] = {
       name: planetName,
       symbol: getPlanetSymbol(planetName),
@@ -86,13 +91,12 @@ function calculatePlanetaryPositions(date) {
       ...getPlanetDetails(longitude)
     };
   });
-  
+
   // Pianeti esterni
   ['Jupiter', 'Saturn'].forEach(planetName => {
-    const body = Astronomy.Body[planetName];
-    const ecliptic = Astronomy.Ecliptic(body, date);
+    const ecliptic = getPlanetEcliptic(planetName);
     const longitude = normalizeAngle(ecliptic.elon);
-    
+
     planets[planetName.toLowerCase()] = {
       name: planetName,
       symbol: getPlanetSymbol(planetName),
@@ -101,14 +105,13 @@ function calculatePlanetaryPositions(date) {
       ...getPlanetDetails(longitude)
     };
   });
-  
-  // Pianeti transpersonali (opzionali per ora)
+
+  // Pianeti transpersonali
   ['Uranus', 'Neptune', 'Pluto'].forEach(planetName => {
     try {
-      const body = Astronomy.Body[planetName];
-      const ecliptic = Astronomy.Ecliptic(body, date);
+      const ecliptic = getPlanetEcliptic(planetName);
       const longitude = normalizeAngle(ecliptic.elon);
-      
+
       planets[planetName.toLowerCase()] = {
         name: planetName,
         symbol: getPlanetSymbol(planetName),
@@ -118,9 +121,10 @@ function calculatePlanetaryPositions(date) {
       };
     } catch (e) {
       // Ignora se non supportato
+      console.warn(`Pianeta ${planetName} non supportato:`, e.message);
     }
   });
-  
+
   return planets;
 }
 
@@ -348,13 +352,18 @@ export function isMercuryRetrograde(date) {
   const date1 = new Date(date);
   const date2 = new Date(date);
   date2.setDate(date2.getDate() + 1);
-  
-  const pos1 = Astronomy.Ecliptic('Mercury', date1).elon;
-  const pos2 = Astronomy.Ecliptic('Mercury', date2).elon;
-  
+
+  const getEclipticLon = (d) => {
+    const geoVec = Astronomy.GeoVector(Astronomy.Body.Mercury, d, true);
+    return Astronomy.Ecliptic(geoVec).elon;
+  };
+
+  const pos1 = getEclipticLon(date1);
+  const pos2 = getEclipticLon(date2);
+
   let diff = pos2 - pos1;
   if (diff > 180) diff -= 360;
   if (diff < -180) diff += 360;
-  
+
   return diff < 0; // Retrogrado se movimento negativo
 }
